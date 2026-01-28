@@ -36,9 +36,16 @@ async function playTurn(player) {
 
         // Check if the player already has this card value
         if (player.hand.some(card => card.value === newCard.value)) {
-            console.log("OH NO! BUSTED!");
-            busted = true;
-            player.score = 0;
+            const secondChanceIndex = player.hand.findIndex(card => card.type === "second_chance");
+            if (secondChanceIndex !== -1) {
+                console.log("Luckily, you get a Second Chance!");
+                player.hand.splice(secondChanceIndex, 1); // remove seconde chance card
+            }
+            else {
+                console.log("OH NO! BUSTED!");
+                busted = true;
+                player.roundScore = 0;
+            }
         } else {
             // Add card to hand and show them
             player.hand.push(newCard);
@@ -48,13 +55,14 @@ async function playTurn(player) {
                 console.log("FLIP 7! You get a 15 point bonus and the round ends!");
                 player.score += 15; // The bonus
                 staying = true; // Ends the loop
-                // TODO : end round for everyone.
+                return true;
             }
 
             const choice = await rl.question("Hit or Stay? ");
             if (choice.toLowerCase() === "stay") {
                 staying = true;
             }
+            return false;
         }
     }
     var num = 0
@@ -86,13 +94,32 @@ async function mainGame() {
             player.hand = []; // Clear hand for the new round
             player.totalScore += player.roundScore;
             player.roundScore = 0; // Clear last round's score.
-            await playTurn(player);
+            let roundOver = await playTurn(player);
+            if (roundOver) {
+                break;
+            }
         }
-
         // Check if anyone hit 200 after everyone has played their turn
         if (players.some(p => p.totalScore >= 200)) {
             gameOver = true;
         }
     }
-    // TODO : Find the winner with the max score!
+    let winner = players[0].name;
+    let winner2 = ""
+    let winning_score = players[0].totalScore;
+    for (let player of players) {
+        if (player.totalScore >= 200 && player.totalScore > winning_score) {
+            winner = player.name;
+            winning_score = player.totalScore;
+        }
+        if (player.totalScore === winning_score && player.name !== winner) {
+            winner2 = player.name;
+        }
+    }
+    if (winner2) {
+        console.log(`The winners are ${winner} and ${winner2} with total score of ${winning_score}`)
+    }
+    else {
+        console.log(`The winner is ${winner} with total score of ${winning_score}`)
+    }
 }
