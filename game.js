@@ -24,77 +24,106 @@ function shuffle() {
     return deck;
 }
 
-var deck = shuffle()
+let deck = shuffle()
+// TODO : add special cards
 // console.log(shuffled);
 
-async function playTurn(player) {
-    let staying = false;
-    let busted = false;
-    console.log(`\n--- ${player.name}'s Turn ---`);
-    while (!staying && !busted) {
-        // Draw a card from the deck
-        let newCard = deck.pop();
+async function playTurn(player, allPlayers){
+    if (player.isOut || player.isStaying) return false;
+    console.log(`\n--- ${player.name}'s Action ---`);
+    console.log(`Current Hand: ${player.hand.map(c => c.value).join(', ')}`);
 
-        // Check for duplicates
-        if (player.hand.some(card => card.value === newCard.value)) {
-            const secondChanceIndex = player.hand.findIndex(card => card.type === "second_chance");
-            if (secondChanceIndex !== -1) {
-                console.log("Luckily, you get a Second Chance!");
-                player.hand.splice(secondChanceIndex, 1); // remove seconde chance card
-            }
-            else {
-                console.log("OH NO! BUSTED!");
-                busted = true;
-                player.roundScore = 0;
-            }
+    let newCard = deck.pop();
+    if (!newCard) { deck = shuffle(); newCard = deck.pop(); } // Deck safety
+
+    // check for duplicates
+    if (player.hand.some(card => card.value === newCard.value)) {
+        const secondChanceIndex = player.hand.findIndex(card => card.type === "second_chance");
+        if (secondChanceIndex !== -1) {
+            console.log(`Drawn: ${newCard.value}. Luckily, you use a Second Chance!`);
+            player.hand.splice(secondChanceIndex, 1);
         } else {
-            // Add card to hand and show them
-            player.hand.push(newCard);
-            console.log(`You drew a ${newCard.value}! Current hand: ${player.hand.map(c => c.value).join(', ')}`);
-
-            if (player.hand.filter(c => c.type === "number").length === 7) {
-                console.log("FLIP 7! You get a 15 point bonus and the round ends!");
-                player.score += 15; // The bonus
-                return true;
-            }
-
-            const choice = await rl.question("Hit or Stay? ");
-            if (choice.toLowerCase() === "stay") {
-                staying = true;
-            }
+            console.log(`Drawn: ${newCard.value}. OH NO! BUSTED!`);
+            player.isOut = true;
+            player.hand = [];
+            return false;
         }
     }
-    let num = 0
-    let mult = 1
-    let bonus = 0
-    for (let card of player.hand) {
-        if (card.type === "number") {
-            num += card.value;
+
+    // Special card : FREEZE
+    if (newCard.type === "freeze") {
+        console.log("FREEZE CARD DRAWN!");
+        let activeOpponents = allPlayers.filter(p => p !== player && !p.isOut && !p.isStaying);
+        let target;
+        if (activeOpponents.length > 0) {
+            const names = activeOpponents.map(p => p.name).join(", ");
+            const targetName = await rl.question(`Who do you want to freeze? (${names}): `);
+            target = allPlayers.find(p => p.name === targetName) || activeOpponents[0];
+        } else {
+            console.log("No one left to freeze, you freeze yourself!");
+            target = player;
         }
-        if (card.type === "multiplier") {
-            mult *= card.value;
-        }
-        if (card.type === "bonus") {
-            bonus += card.value;
-        }
+        target.isOut = true;
+        target.hand = [];
+        console.log(`${target.name} is frozen out of the round!`);
+        if (target === player) return false;
     }
-    player.roundScore += num*mult+bonus;
-    console.log(`${player.name} scored ${player.roundScore} points this round.`);
+
+    player.hand.push(newCard);
+    console.log(`You drew a ${newCard.value}!`);
+
+    // Flip 7 check
+    if (player.hand.filter(c => c.type === "number").length === 7) {
+        console.log("FLIP 7! 15 point bonus! Round ends!");
+        player.totalScore += 15;
+        return true; // Signal round end
+    }
+
+    const choice = await rl.question("Hit or Stay? ");
+    if (choice.toLowerCase() === "stay") {
+        player.isStaying = true;
+    }
+
     return false;
 }
 
 async function mainGame() {
     let players = [
-        {name:'Alyss', hand: [], roundScore:0, totalScore:0},
-        {name:'Bob', hand: [], roundScore:0, totalScore:0},
+        {name:'Alyss', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
+        {name:'Bob', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
     ]
     let gameOver = false;
     while (!gameOver) {
+        players.forEach(p => {
+            p.hand = [];
+            p.isOut = false;
+            p.isStaying = false;
+        });
+
+        let roundActive = true;
+        while (roundActive) {
+            for (let player of players) {
+                if (!player.isOut && !player.isStaying) {
+                    let flip7Triggered = await playTurn(player, players);
+
+                    if (flip7Triggered) {
+                        roundActive = false;
+                        break;
+                    }
+                }
+            }
+            if (players.every(p => p.isOut && p.isStaying)) {
+                roundActive = false;
+            }
+        }
+
+
         for (let player of players) {
             player.hand = []; // Clear hand for the new round
+            player.isOut = false;
             player.totalScore += player.roundScore;
             player.roundScore = 0; // Clear last round's score.
-            let roundOver = await playTurn(player);
+            let roundOver = await playTurn(player, players);
             if (roundOver) {
                 break;
             }
@@ -103,7 +132,31 @@ async function mainGame() {
         if (players.some(p => p.totalScore >= 200)) {
             gameOver = true;
         }
+
+        // Calculate Scores
+        players.forEach(p => {
+            let num = 0
+            let mult = 1
+            let bonus = 0
+            for (let card of p.hand) {
+                if (card.type === "number") {
+                    num += card.value;
+                }
+                if (card.type === "multiplier") {
+                    mult *= card.value;
+                }
+                if (card.type === "bonus") {
+                    bonus += card.value;
+                }
+            }
+            p.roundScore = num * mult + bonus;
+            p.totalScore += p.roundScore;
+            console.log(`${p.name} scored ${p.roundScore} points this round.`);
+        })
+
+        if (players.some(p => p.totalScore >= 200)) gameOver = true;
     }
+
     let winner = players[0].name;
     let winner2 = ""
     let winning_score = players[0].totalScore;
@@ -122,6 +175,8 @@ async function mainGame() {
     else {
         console.log(`The winner is ${winner} with total score of ${winning_score}`)
     }
+    console.log("Game Over!");
+    rl.close();
 }
 
 mainGame()
