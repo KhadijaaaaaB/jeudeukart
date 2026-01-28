@@ -1,0 +1,19 @@
+{
+  "name": "jeudeukart",
+  "version": "1.0.0",
+  "description": "Jeu de carte en node.js pour le projet de ELP",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KhadijaaaaaB/jeudeukart.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KhadijaaaaaB/jeudeukart/issues"
+  },
+  "homepage": "https://github.com/KhadijaaaaaB/jeudeukart#readme"
+}
