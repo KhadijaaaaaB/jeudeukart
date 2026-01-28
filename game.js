@@ -24,17 +24,18 @@ function shuffle() {
     return deck;
 }
 
-var shuffled = shuffle()
+var deck = shuffle()
 // console.log(shuffled);
 
 async function playTurn(player) {
     let staying = false;
     let busted = false;
+    console.log(`\n--- ${player.name}'s Turn ---`);
     while (!staying && !busted) {
         // Draw a card from the deck
         let newCard = deck.pop();
 
-        // Check if the player already has this card value
+        // Check for duplicates
         if (player.hand.some(card => card.value === newCard.value)) {
             const secondChanceIndex = player.hand.findIndex(card => card.type === "second_chance");
             if (secondChanceIndex !== -1) {
@@ -49,12 +50,11 @@ async function playTurn(player) {
         } else {
             // Add card to hand and show them
             player.hand.push(newCard);
-            console.log(`You drew a ${newCard.value}!`);
+            console.log(`You drew a ${newCard.value}! Current hand: ${player.hand.map(c => c.value).join(', ')}`);
 
             if (player.hand.filter(c => c.type === "number").length === 7) {
                 console.log("FLIP 7! You get a 15 point bonus and the round ends!");
                 player.score += 15; // The bonus
-                staying = true; // Ends the loop
                 return true;
             }
 
@@ -62,13 +62,12 @@ async function playTurn(player) {
             if (choice.toLowerCase() === "stay") {
                 staying = true;
             }
-            return false;
         }
     }
-    var num = 0
-    var mult = 1
-    var bonus = 0
-    for (card of player.hand) {
+    let num = 0
+    let mult = 1
+    let bonus = 0
+    for (let card of player.hand) {
         if (card.type === "number") {
             num += card.value;
         }
@@ -79,15 +78,16 @@ async function playTurn(player) {
             bonus += card.value;
         }
     }
-    player.score += num*mult+bonus;
+    player.roundScore += num*mult+bonus;
+    console.log(`${player.name} scored ${player.roundScore} points this round.`);
+    return false;
 }
 
-let players = [
-    {name:'Alyss', hand: [], roundScore:0, totalScore:0},
-    {name:'Bob', hand: [], roundScore:0, totalScore:0},
-]
-
 async function mainGame() {
+    let players = [
+        {name:'Alyss', hand: [], roundScore:0, totalScore:0},
+        {name:'Bob', hand: [], roundScore:0, totalScore:0},
+    ]
     let gameOver = false;
     while (!gameOver) {
         for (let player of players) {
@@ -123,3 +123,5 @@ async function mainGame() {
         console.log(`The winner is ${winner} with total score of ${winning_score}`)
     }
 }
+
+mainGame()
