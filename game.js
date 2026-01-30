@@ -184,4 +184,11 @@ async function mainGame() {
     rl.close();
 }
 
-mainGame()
+(async () => {
+    try {
+        await mainGame();
+    } catch (error) {
+        console.error("\nError:", error.code);
+        rl.close();
+    }
+})();
