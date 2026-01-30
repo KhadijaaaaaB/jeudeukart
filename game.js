@@ -1,4 +1,5 @@
 const readline = require('readline/promises');
+const fs = require('node:fs/promises');
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -28,6 +29,19 @@ function shuffle() {
         [deck[i], deck[j]] = [deck[j], deck[i]];
     }
     return deck;
+}
+
+async function logTurn(player) {
+    try {
+        const handValues = player.hand.map(c => c.name).join(', ');
+        const timestamp = new Date().toISOString();
+
+        const entry = `[${timestamp}] Player: ${player.name} | Hand: [${handValues}] | Points Gained: ${player.roundScore} | Total Score: ${player.totalScore}\n`;
+
+        await fs.appendFile('game_history.txt', entry);
+    } catch (err) {
+        console.error("Could not write to log file:", err);
+    }
 }
 
 // console.log(shuffled);
@@ -132,7 +146,7 @@ async function mainGame() {
     let gameOver = false;
     let players = await initGame();
 
-    while (!gameOver) {
+     while (!gameOver) {
         console.log('==== NEW ROUND ====')
         
         players.forEach(p => {
@@ -160,7 +174,7 @@ async function mainGame() {
         }
 
         // Calculate Scores
-        players.forEach(p => {
+        for (let p of players) {
             let num = 0
             let mult = 1
             let bonus = 0
@@ -177,9 +191,10 @@ async function mainGame() {
             }
             p.roundScore = num * mult + bonus;
             p.totalScore += p.roundScore;
+            await logTurn(p);
             console.log(`${p.name} scored ${p.roundScore} points this round. Total points: ${p.totalScore}`);
-        })
-        
+        }
+
         console.log();
 
         if (players.some(p => p.totalScore >= 200))
