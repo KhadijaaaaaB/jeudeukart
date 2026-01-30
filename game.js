@@ -32,10 +32,10 @@ async function playTurn(player, allPlayers) {
     if (player.isOut || player.isStaying) return false;
 
     // Log player's name in the correct format
-    if (player.name.substr(player.name.length - 1) == 's')
-        console.log(`\n--- ${player.name}' Action ---`);
+    if (player.name.substr(player.name.length - 1) === 's')
+        console.log(`--- ${player.name}' Action ---`);
     else
-        console.log(`\n--- ${player.name}'s Action ---`);
+        console.log(`--- ${player.name}'s Action ---`);
 
     console.log(`Current Hand: ${player.hand.map(c => c.value).join(', ')}`);
 
@@ -109,6 +109,8 @@ async function mainGame() {
     ]
 
     while (!gameOver) {
+        console.log('==== NEW ROUND ====')
+        
         players.forEach(p => {
             p.hand = [];
             p.isOut = false;
@@ -120,6 +122,7 @@ async function mainGame() {
             for (let player of players) {
                 if (!player.isOut && !player.isStaying) {
                     let flip7Triggered = await playTurn(player, players);
+                    console.log();
 
                     if (flip7Triggered) {
                         roundActive = false;
@@ -130,11 +133,6 @@ async function mainGame() {
             
             if (players.every(p => p.isOut || p.isStaying))
                 roundActive = false;
-        }
-        
-        // Check if anyone hit 200 after everyone has played their turn
-        if (players.some(p => p.totalScore >= 200)) {
-            gameOver = true;
         }
 
         // Calculate Scores
@@ -155,10 +153,13 @@ async function mainGame() {
             }
             p.roundScore = num * mult + bonus;
             p.totalScore += p.roundScore;
-            console.log(`${p.name} scored ${p.roundScore} points this round.`);
+            console.log(`${p.name} scored ${p.roundScore} points this round. Total points: ${p.totalScore}`);
         })
+        
+        console.log();
 
-        if (players.some(p => p.totalScore >= 200)) gameOver = true;
+        if (players.some(p => p.totalScore >= 200))
+            gameOver = true;
     }
 
     let winner = players[0].name;
@@ -169,16 +170,16 @@ async function mainGame() {
             winner = player.name;
             winning_score = player.totalScore;
         }
-        if (player.totalScore === winning_score && player.name !== winner) {
+        
+        if (player.totalScore === winning_score && player.name !== winner)
             winner2 = player.name;
-        }
     }
-    if (winner2) {
+    
+    if (winner2)
         console.log(`The winners are ${winner} and ${winner2} with total score of ${winning_score}`)
-    }
-    else {
+    else
         console.log(`The winner is ${winner} with total score of ${winning_score}`)
-    }
+    
     console.log("Game Over!");
     rl.close();
 }
