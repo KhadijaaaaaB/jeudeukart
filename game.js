@@ -6,11 +6,10 @@ const rl = readline.createInterface({
 
 function create_deck() {
     let deck = []
-    for (let i = 12; i >= 1 ; i--) {
-        for (let count = 0 ; count <= i; count++) {
+    for (let i = 12; i >= 1 ; i--)
+        for (let count = 0 ; count <= i; count++)
             deck.push({name: i.toString(), value: i, type: 'number'})
-        }
-    }
+
     deck.push({name: 0, value: 0, type: 'number'})
     return deck
 }
@@ -24,19 +23,30 @@ function shuffle() {
     return deck;
 }
 
-let deck = shuffle()
 // TODO : add special cards
 // console.log(shuffled);
+let deck = shuffle()
 
-async function playTurn(player, allPlayers){
+// Returning true indicates the end of the round
+async function playTurn(player, allPlayers) {
     if (player.isOut || player.isStaying) return false;
-    console.log(`\n--- ${player.name}'s Action ---`);
+
+    // Log player's name in the correct format
+    if (player.name.substr(player.name.length - 1) == 's')
+        console.log(`\n--- ${player.name}' Action ---`);
+    else
+        console.log(`\n--- ${player.name}'s Action ---`);
+
     console.log(`Current Hand: ${player.hand.map(c => c.value).join(', ')}`);
 
     let newCard = deck.pop();
-    if (!newCard) { deck = shuffle(); newCard = deck.pop(); } // Deck safety
+    // Deck safety
+    if (!newCard) {
+        deck = shuffle();
+        newCard = deck.pop();
+    }
 
-    // check for duplicates
+    // Check for duplicates, bust player or give them a second chance
     if (player.hand.some(card => card.value === newCard.value)) {
         const secondChanceIndex = player.hand.findIndex(card => card.type === "second_chance");
         if (secondChanceIndex !== -1) {
@@ -55,6 +65,8 @@ async function playTurn(player, allPlayers){
         console.log("FREEZE CARD DRAWN!");
         let activeOpponents = allPlayers.filter(p => p !== player && !p.isOut && !p.isStaying);
         let target;
+
+        // Choose player to freeze - might be ourselves if everyone busted
         if (activeOpponents.length > 0) {
             const names = activeOpponents.map(p => p.name).join(", ");
             const targetName = await rl.question(`Who do you want to freeze? (${names}): `);
@@ -63,12 +75,15 @@ async function playTurn(player, allPlayers){
             console.log("No one left to freeze, you freeze yourself!");
             target = player;
         }
+
         target.isOut = true;
         target.hand = [];
         console.log(`${target.name} is frozen out of the round!`);
-        if (target === player) return false;
+        if (target === player)
+            return false;
     }
 
+    // Adding a new card to the player's deck a couple of checks after drawing it allows us to essentially discard it
     player.hand.push(newCard);
     console.log(`You drew a ${newCard.value}!`);
 
@@ -76,23 +91,23 @@ async function playTurn(player, allPlayers){
     if (player.hand.filter(c => c.type === "number").length === 7) {
         console.log("FLIP 7! 15 point bonus! Round ends!");
         player.totalScore += 15;
-        return true; // Signal round end
+        return true;
     }
 
     const choice = await rl.question("Hit or Stay? ");
-    if (choice.toLowerCase() === "stay") {
+    if (choice.toLowerCase() === "stay")
         player.isStaying = true;
-    }
 
     return false;
 }
 
 async function mainGame() {
+    let gameOver = false;
     let players = [
         {name:'Alyss', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
         {name:'Bob', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
     ]
-    let gameOver = false;
+
     while (!gameOver) {
         players.forEach(p => {
             p.hand = [];
@@ -112,7 +127,7 @@ async function mainGame() {
                     }
                 }
             }
-            if (players.every(p => p.isOut && p.isStaying)) {
+            if (players.every(p => p.isOut || p.isStaying)) {
                 roundActive = false;
             }
         }
