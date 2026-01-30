@@ -102,12 +102,35 @@ async function playTurn(player, allPlayers) {
     return false;
 }
 
+// Returns a list of players
+async function initGame() {
+    const player_number = await rl.question("How many players? [2] ");
+    const numPlayers = Number(player_number);
+
+    // Default case
+    if (!player_number.trim() || isNaN(numPlayers)) {
+        console.log(`Defaulting to two players`);
+        return [
+            {name:'Alyss', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
+            {name:'Bob', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
+        ]
+    }
+    
+    let players = []
+    for (let i = 1; i <= numPlayers; i++) {
+        let player_name = await rl.question(`Name of player ${i}? `);
+        if (!player_name.trim())
+            player_name = `Player ${i}`;
+        
+        players.push({name: player_name, hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false})
+    }
+    
+    return players;
+}
+
 async function mainGame() {
     let gameOver = false;
-    let players = [
-        {name:'Alyss', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
-        {name:'Bob', hand: [], roundScore:0, totalScore:0, isOut:false, isStaying:false},
-    ]
+    let players = await initGame();
 
     while (!gameOver) {
         console.log('==== NEW ROUND ====')
