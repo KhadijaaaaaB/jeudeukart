@@ -127,22 +127,11 @@ async function mainGame() {
                     }
                 }
             }
-            if (players.every(p => p.isOut || p.isStaying)) {
+            
+            if (players.every(p => p.isOut || p.isStaying))
                 roundActive = false;
-            }
         }
-
-
-        for (let player of players) {
-            player.hand = []; // Clear hand for the new round
-            player.isOut = false;
-            player.totalScore += player.roundScore;
-            player.roundScore = 0; // Clear last round's score.
-            let roundOver = await playTurn(player, players);
-            if (roundOver) {
-                break;
-            }
-        }
+        
         // Check if anyone hit 200 after everyone has played their turn
         if (players.some(p => p.totalScore >= 200)) {
             gameOver = true;
