@@ -5,11 +5,18 @@ const rl = readline.createInterface({
 });
 
 function create_deck() {
+    let action_cards = ["freeze", "second_chance"]
+    let multiplier = 2
+    let bonus = [2, 4, 6, 8, 10]
     let deck = []
     for (let i = 12; i >= 1 ; i--)
         for (let count = 0 ; count <= i; count++)
             deck.push({name: i.toString(), value: i, type: 'number'})
-
+    for (let i = 0; i < action_cards.length; i++)
+        deck.push({name: action_cards[i], type: 'action'})
+    for (let i = 0; i < bonus.length; i++)
+        deck.push({name: "+"+bonus[i], value: bonus[i], type: 'bonus'})
+    deck.push({name: "x"+multiplier, value: multiplier, type: 'multiplier'})
     deck.push({name: 0, value: 0, type: 'number'})
     return deck
 }
@@ -23,7 +30,6 @@ function shuffle() {
     return deck;
 }
 
-// TODO : add special cards
 // console.log(shuffled);
 let deck = shuffle()
 
@@ -37,18 +43,13 @@ async function playTurn(player, allPlayers) {
     else
         console.log(`--- ${player.name}'s Action ---`);
 
-    console.log(`Current Hand: ${player.hand.map(c => c.value).join(', ')}`);
+    console.log(`Current Hand: ${player.hand.map(c => c.name).join(', ')}`);
 
     let newCard = deck.pop();
-    // Deck safety
-    if (!newCard) {
-        deck = shuffle();
-        newCard = deck.pop();
-    }
 
     // Check for duplicates, bust player or give them a second chance
     if (player.hand.some(card => card.value === newCard.value)) {
-        const secondChanceIndex = player.hand.findIndex(card => card.type === "second_chance");
+        const secondChanceIndex = player.hand.findIndex(card => card.name === "second_chance");
         if (secondChanceIndex !== -1) {
             console.log(`Drawn: ${newCard.value}. Luckily, you use a Second Chance!`);
             player.hand.splice(secondChanceIndex, 1);
@@ -61,7 +62,7 @@ async function playTurn(player, allPlayers) {
     }
 
     // Special card : FREEZE
-    if (newCard.type === "freeze") {
+    if (newCard.name === "freeze") {
         console.log("FREEZE CARD DRAWN!");
         let activeOpponents = allPlayers.filter(p => p !== player && !p.isOut && !p.isStaying);
         let target;
@@ -85,7 +86,7 @@ async function playTurn(player, allPlayers) {
 
     // Adding a new card to the player's deck a couple of checks after drawing it allows us to essentially discard it
     player.hand.push(newCard);
-    console.log(`You drew a ${newCard.value}!`);
+    if (newCard.name) console.log(`You drew a ${newCard.name}!`)
 
     // Flip 7 check
     if (player.hand.filter(c => c.type === "number").length === 7) {
