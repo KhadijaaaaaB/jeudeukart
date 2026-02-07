@@ -4,6 +4,7 @@
   "description": "Jeu de carte en node.js pour le projet de ELP",
   "main": "index.js",
   "scripts": {
+    "main": "node src/game.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
